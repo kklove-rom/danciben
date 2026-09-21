@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>单词本</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ── SHELF (词书列表) ── -->
+<div class="screen" id="s-shelf">
+  <div class="topbar">
+    <div style="width:36px"></div>
+    <h1>我的词书</h1>
+    <div class="topbar-actions">
+      <button class="icon-btn accent" title="设置" onclick="openSettings()"><i class="ti ti-settings"></i></button>
+      <button class="icon-btn accent" title="新建词书" onclick="createBook()"><i class="ti ti-plus"></i></button>
+    </div>
+  </div>
+  <div class="shelf-scroll">
+    <div class="shelf-grid" id="shelf-grid"></div>
+  </div>
+</div>
+
+<!-- ── WORD LIST ── -->
+<div class="screen hidden" id="s-wordlist">
+  <div class="wl-topbar">
+    <button class="icon-btn" onclick="backToShelf()"><i class="ti ti-arrow-left"></i></button>
+    <span class="wl-title" id="wl-title">词书</span>
+    <button class="icon-btn" title="导入文件" onclick="document.getElementById('file-input').click()"><i class="ti ti-upload"></i></button>
+    <input type="file" id="file-input" accept=".txt,.csv" style="display:none" onchange="importFile(this)">
+    <button class="icon-btn" id="btn-eye" title="显示/隐藏释义" onclick="toggleDefs()"><i class="ti ti-eye"></i></button>
+    <button class="icon-btn" id="btn-play" title="播放单词" onclick="togglePlayer()"><i class="ti ti-player-play"></i></button>
+  </div>
+  <div class="word-scroll" id="word-scroll"></div>
+  <div class="player-bar hide" id="player-bar">
+    <div class="player-row1">
+      <button class="icon-btn" id="pl-playpause" onclick="playerPP()"><i class="ti ti-player-play" id="pl-icon"></i></button>
+      <span class="player-info" id="pl-info">准备播放...</span>
+      <button class="icon-btn" onclick="stopPlayer()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="prog-wrap" id="prog-wrap" onclick="seekProg(event)">
+      <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+    <div class="speed-row">
+      <span class="speed-label">语速</span>
+      <button class="speed-btn on" onclick="setSpeed(0.75,this)">0.75×</button>
+      <button class="speed-btn" onclick="setSpeed(1,this)">1×</button>
+      <button class="speed-btn" onclick="setSpeed(1.25,this)">1.25×</button>
+      <button class="speed-btn" onclick="setSpeed(1.5,this)">1.5×</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SETTINGS MODAL (only audio test) ── -->
+<div class="overlay hide" id="modal-settings">
+  <div class="modal" style="width:85%;max-width:320px">
+    <h3>发音设置</h3>
+    <div class="test-result" id="storage-status" style="margin:-6px 0 10px;color:var(--text3)"></div>
+    <div class="settings-modal-section">
+      <label>发音引擎</label>
+      <select id="audio-engine" onchange="onEngineChange()">
+        <option value="online">在线发音（推荐，联网即可用）</option>
+      </select>
+    </div>
+    <div class="settings-modal-section">
+      <label>朗读内容</label>
+      <select id="ss-content">
+        <option value="word">仅单词</option>
+        <option value="word_def" selected>单词 + 意思</option>
+        <option value="word_pos_def">单词 + 词性 + 意思</option>
+      </select>
+    </div>
+    <div class="settings-modal-section">
+      <label>每词读几遍</label>
+      <select id="ss-repeat">
+        <option value="1" selected>1遍</option>
+        <option value="2">2遍</option>
+        <option value="3">3遍</option>
+      </select>
+    </div>
+    <div class="settings-modal-section">
+      <label>单词间隔</label>
+      <select id="ss-interval">
+        <option value="0.5">0.5秒</option>
+        <option value="1" selected>1秒</option>
+        <option value="1.5">1.5秒</option>
+        <option value="2">2秒</option>
+      </select>
+    </div>
+    <button class="test-audio-btn" id="test-audio-btn" onclick="testAudio()">
+      <i class="ti ti-volume"></i> 测试发音
+    </button>
+    <div class="test-result" id="test-result"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-settings')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- modals for book -->
+<div class="overlay hide" id="modal-rename">
+  <div class="modal">
+    <h3>重命名词书</h3>
+    <input type="text" id="rename-input" placeholder="输入新名称" onkeydown="if(event.key==='Enter')confirmRename()">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-rename')">返回</button>
+      <button class="btn-confirm" onclick="confirmRename()">确认</button>
+    </div>
+  </div>
+</div>
+<div class="overlay hide" id="modal-newbook">
+  <div class="modal">
+    <h3>新建词书</h3>
+    <input type="text" id="newbook-input" placeholder="词书名称" onkeydown="if(event.key==='Enter')confirmNewBook()">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-newbook')">返回</button>
+      <button class="btn-confirm" onclick="confirmNewBook()">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 词书操作菜单（长按词书弹出） ── -->
+<div class="overlay hide" id="modal-bookmenu">
+  <div class="action-sheet">
+    <div class="action-sheet-title" id="menu-book-name">词书</div>
+    <button class="action-item danger" onclick="deleteMenuBook()"><i class="ti ti-trash"></i> 删除该词书</button>
+    <button class="action-item" onclick="closeBookMenu()">取消</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
